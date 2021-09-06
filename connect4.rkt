@@ -134,113 +134,36 @@
 (define (eval copiaTablero)
   (cond[(equal? (cuatro-linea copiaTablero) #t) (displayln 5)]
        ;[(bloqueo copiaTablero) (displayln 4)]
-       [(equal? (tres-linea copiaTablero) #t) (displayln 3)]
-       [(equal? (dos-linea copiaTablero) #t) (displayln 2)]
-       [else (displayln 1)]
+       ;[(equal? (tres-linea copiaTablero) #t) (displayln 3)]
+       ;[(equal? (dos-linea copiaTablero) #t) (displayln 2)]
+       [else (and (display "else") (displayln 1))]
        ))
 
 ;Función cuatro en línea
 (define (cuatro-linea copiaTablero)
-  (if (equal? (verificar4Columna copiaTablero) #t) #t #f) 
+  (define cont 3)
+  (define inicio 0)
+  (if (equal? (verificar4Columna copiaTablero cont inicio) #t) #t #f) 
   ;Evalua diagonales
 )
 
 ;Verifica si en las columnas hay jugadas de 4
-(define (verificar4Columna tablero)
+(define (verificar4Columna copiaTablero cont inicio)
   (define seguidos 1)
   (for ([j 7]) ;Es el que se suma
-    (for ([i 5]); Es el que se multiplica
-      (define fichaActual (vector-ref tablero (+ (* 7 i) j)))
-      (and (display i) (displayln j))
-      (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j)))
-      (and (display jugador) (displayln "jugador"))
-      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
+    (for ([i (in-range inicio (+ inicio 4))]); Es el que se multiplica
+      (define fichaActual (vector-ref tablero (+ (* 7 i) j)) )
+      (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j))) 
+      (if(and (= fichaActual fichaSiguiente) (> fichaActual 0))
          (set! seguidos (+ seguidos 1)) (set! seguidos 1))
-      (displayln seguidos)
-      (when (= seguidos 4) #t)
+      (when (= seguidos 4) (display fichaActual))
       )
+    (when (and (> cont 0) (= j 6)) (verificar4Columna copiaTablero (- 1 cont) (+ 1 inicio)))
     )
   )
   
-;Verifica si en las filas hay jugadas de 4
-(define (verificar4Fila tablero)
-  (define seguidos 1)
-  (for ([i 6])
-    (for ([j 6])
-      (define fichaActual (vector-ref tablero (+ (* 7 i) j)) )
-      (define fichaSiguiente (vector-ref tablero (+ (* 7 i) (+ j 1))))
-      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
-         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
-      (when (= seguidos 4) #t))
-      )
-    )
-
-;Función tres en línea
-(define (tres-linea copiaTablero)
-  (if (or (equal? (verificar3Columna copiaTablero) #t) (equal? (verificar3Fila copiaTablero) #t)) #t #f) 
-  ;Evalua diagonales
-)
-
-;Verifica si en las columnas hay jugadas de 3
-(define (verificar3Columna tablero)
-  (define seguidos 1)
-  (for ([j 7]) ;Es el que se suma
-    (for ([i 5]); Es el que se multiplica
-      (define fichaActual (vector-ref tablero (+ (* 7 i) j)))
-      (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j))) 
-      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
-         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
-      (when (= seguidos 3) #t))
-      )
-    )
-  
-
-;Verifica si en las filas hay jugadas de 3
-(define (verificar3Fila tablero)
-  (define seguidos 1)
-  (for ([i 6])
-    (for ([j 6])
-      (define fichaActual (vector-ref tablero (+ (* 7 i) j)) )
-      (define fichaSiguiente (vector-ref tablero (+ (* 7 i) (+ j 1))))
-      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
-         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
-      (when (= seguidos 3) #t))
-      )
-    )
 
 
-;Función dos en línea
-(define (dos-linea copiaTablero)
-  (if (or (equal? (verificar2Columna copiaTablero) #t) (equal? (verificar2Fila copiaTablero) #t)) #t #f) 
-  ;Evalua diagonales
-)
-
-;Verifica si en las columnas hay jugadas de 2
-(define (verificar2Columna tablero)
-  (define seguidos 1)
-  (for ([j 7]) ;Es el que se suma
-    (for ([i 5]); Es el que se multiplica
-      (define fichaActual (vector-ref tablero (+ (* 7 i) j)))
-      (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j))) 
-      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
-         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
-      (when (= seguidos 2) #t))
-      )
-    )
-  
-
-;Verifica si en las filas hay jugadas de 2
-(define (verificar2Fila tablero)
-  (define seguidos 1)
-  (for ([i 6])
-    (for ([j 6])
-      (define fichaActual (vector-ref tablero (+ (* 7 i) j)) )
-      (define fichaSiguiente (vector-ref tablero (+ (* 7 i) (+ j 1))))
-      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
-         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
-      (when (= seguidos 2) #t))
-      )
-  )
 
 ;Verifica si la columna ya está completa o no
 (define (columna-incompleta numColumna)
