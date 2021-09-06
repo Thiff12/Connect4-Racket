@@ -28,7 +28,6 @@
           ( super-new )
       ))
 
-
 ;Crea un hijo de ventana en donde se llama la función dibujarTablero 
 ( define c ( new canvas-hijo% [ parent ventana ]
                  [paint-callback
@@ -41,7 +40,6 @@
 (define negro (make-object color% 0 0 0));Color tablero 
 (define rojo (make-object color% 255 0 0));Color IA
 (define amarillo (make-object color% 255 255 0));Color jugador
-
 
 ;Define el lápiz y la brocha que se usará para dibujar
 (define lápiz-negro (make-object pen% negro 1 'xor ))
@@ -74,13 +72,18 @@
 ;Muestra la ventana
 (send ventana show #t)
 
- 
+;Cambia de turno al jugador y si el jugador es la IA llama a la función min-max
+(define (cambiarTurno)
+  (if(= jugador 1)  (and (mini-max) (set! jugador 2))  (set! jugador 1))
+  )
+
+
 ;Mete la ficha en el espacio vacio y si la columna no esta completa 
 (define (casilla-vacia columna)
   (define numColumna (string->number columna))
   (displayln  numColumna)
   (define fichaPuesta #f)
-  (if (equal? (columna-incompleta numColumna) #t)
+  (if (equal? (columna-incompleta (- numColumna 1)) #t)
       (for ([i 6])
         (if(and(=(vector-ref tablero (+ (* 7 i) (- numColumna 1))) 0) (equal? fichaPuesta #f))
            (and (poner-ficha i (- numColumna 1))  (set! fichaPuesta #t)) 0)
@@ -93,21 +96,22 @@
   (vector-set! tablero (+ (* 7 i) j) jugador)
   (dibujar-fichas (+(* j 100) 5) (+(*(- 5 i)100)5))
   (cambiarTurno)
-  
-  (displayln tablero)
   )
 
-;Cambia de turno al jugador y si el jugador es la IA llama a la función min-max
-(define (cambiarTurno)
-  (if(= jugador 1)  (and (mini-max) (set! jugador 2))  (set! jugador 1))
-  )
 
 (define(mini-max)
   (define copiaTablero (vector-copy tablero 0 42))
   (displayln copiaTablero)
+  ;(if estadoTerminal (eval copiaTablero) (- profundidad 1))
   (jugadas-posibles copiaTablero)
+  (eval copiaTablero)
 
 )
+
+;Dice si un estado es terminal o no 
+(define(estadoTerminal)
+  (if (= profundidad 0) #t #f)
+  )
 
 ;Verifica las posibles jugadas
 (define(jugadas-posibles copiaTablero)
@@ -115,86 +119,50 @@
   (define jugadas #f)
   (for ([j 7])
     (set! jugadas #f)
-    (if (equal? (columna-incompleta j) #t)
-      (for ([i 6])
-        (if(and(=(vector-ref tablero (+ (* 7 i) j)) 0) (equal? jugadas #f))
-           (and (vector-set! posiblesJugadas j (+ (* 7 i) j)) (set! jugadas #t)) 0)
-        )0)
-    )
+    (when (equal? (columna-incompleta j) #t)
+        (for ([i 6])
+          (if(and(=(vector-ref tablero (+ (* 7 i) j)) 0) (equal? jugadas #f))
+          (and (vector-set! posiblesJugadas j (+ (* 7 i) j)) (set! jugadas #t)) 0)
+    ))
+    
+  )
   (displayln posiblesJugadas)
   )
 
-;Dice si un estado es terminal o no 
-(define(estadoTerminal)
-  (if (= profundidad 0) #t #f)
-  )
 
-;Función Eval
+;Función eval
 (define (eval copiaTablero)
-  (cond[(cuatro-linea copiaTablero) 5]
-       [(bloqueo copiaTablero) 4]
-       [(tres-linea copiaTablero) 3]
-       [(dos-linea copiaTablero) 2]
-       [else 1]
+  (cond[(equal? (cuatro-linea copiaTablero) #t) (displayln 5)]
+       ;[(bloqueo copiaTablero) (displayln 4)]
+       [(equal? (tres-linea copiaTablero) #t) (displayln 3)]
+       [(equal? (dos-linea copiaTablero) #t) (displayln 2)]
+       [else (displayln 1)]
        ))
-
-;Función tres en línea
-(define (tres-linea copiaTablero)
-  (verificarColumnaJugador copiaTablero)
-  (verificarFilaJugador copiaTablero)
-  ;Evalua diagonales
-)
-
-;Verifica si en la columna hay posibles jugadas ganadoras del jugador
-(define (verificarColumnaJugador tablero)
-  (define seguidos 1)
-  (for ([j 7]) ;Es el que se suma
-    (for ([i 5]); Es el que se multiplica
-      (define fichaActual (vector-ref tablero (+ (* 7 i) j)))
-      (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j))) 
-      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
-         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
-      (when (= seguidos 3) #t))
-      )
-    )
-  )
-
-;Verifica si en la fila hay posibles jugadas ganadoras del jugador
-(define (verificarFilaJugador tablero)
-  (define seguidos 1)
-  (for ([i 6])
-    (for ([j 6])
-      (define fichaActual (vector-ref tablero (+ (* 7 i) j)) )
-      (define fichaSiguiente (vector-ref tablero (+ (* 7 i) (+ j 1))))
-      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
-         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
-      (when (= seguidos 3) #t))
-      )
-    )
-  )
 
 ;Función cuatro en línea
 (define (cuatro-linea copiaTablero)
-  (verificar4Columna copiaTablero)
-  (verificar4Fila copiaTablero)
+  (if (equal? (verificar4Columna copiaTablero) #t) #t #f) 
   ;Evalua diagonales
 )
 
-;Verifica si en la columna hay jugadas de 4
+;Verifica si en las columnas hay jugadas de 4
 (define (verificar4Columna tablero)
   (define seguidos 1)
   (for ([j 7]) ;Es el que se suma
     (for ([i 5]); Es el que se multiplica
       (define fichaActual (vector-ref tablero (+ (* 7 i) j)))
-      (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j))) 
+      (and (display i) (displayln j))
+      (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j)))
+      (and (display jugador) (displayln "jugador"))
       (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
          (set! seguidos (+ seguidos 1)) (set! seguidos 1))
-      (when (= seguidos 4) #t))
+      (displayln seguidos)
+      (when (= seguidos 4) #t)
       )
     )
   )
-
-;Verifica si en la fila hay jugadas de 4
+  
+;Verifica si en las filas hay jugadas de 4
 (define (verificar4Fila tablero)
   (define seguidos 1)
   (for ([i 6])
@@ -206,11 +174,77 @@
       (when (= seguidos 4) #t))
       )
     )
+
+;Función tres en línea
+(define (tres-linea copiaTablero)
+  (if (or (equal? (verificar3Columna copiaTablero) #t) (equal? (verificar3Fila copiaTablero) #t)) #t #f) 
+  ;Evalua diagonales
+)
+
+;Verifica si en las columnas hay jugadas de 3
+(define (verificar3Columna tablero)
+  (define seguidos 1)
+  (for ([j 7]) ;Es el que se suma
+    (for ([i 5]); Es el que se multiplica
+      (define fichaActual (vector-ref tablero (+ (* 7 i) j)))
+      (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j))) 
+      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
+         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
+      (when (= seguidos 3) #t))
+      )
+    )
+  
+
+;Verifica si en las filas hay jugadas de 3
+(define (verificar3Fila tablero)
+  (define seguidos 1)
+  (for ([i 6])
+    (for ([j 6])
+      (define fichaActual (vector-ref tablero (+ (* 7 i) j)) )
+      (define fichaSiguiente (vector-ref tablero (+ (* 7 i) (+ j 1))))
+      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
+         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
+      (when (= seguidos 3) #t))
+      )
+    )
+
+
+;Función dos en línea
+(define (dos-linea copiaTablero)
+  (if (or (equal? (verificar2Columna copiaTablero) #t) (equal? (verificar2Fila copiaTablero) #t)) #t #f) 
+  ;Evalua diagonales
+)
+
+;Verifica si en las columnas hay jugadas de 2
+(define (verificar2Columna tablero)
+  (define seguidos 1)
+  (for ([j 7]) ;Es el que se suma
+    (for ([i 5]); Es el que se multiplica
+      (define fichaActual (vector-ref tablero (+ (* 7 i) j)))
+      (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j))) 
+      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
+         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
+      (when (= seguidos 2) #t))
+      )
+    )
+  
+
+;Verifica si en las filas hay jugadas de 2
+(define (verificar2Fila tablero)
+  (define seguidos 1)
+  (for ([i 6])
+    (for ([j 6])
+      (define fichaActual (vector-ref tablero (+ (* 7 i) j)) )
+      (define fichaSiguiente (vector-ref tablero (+ (* 7 i) (+ j 1))))
+      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
+         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
+      (when (= seguidos 2) #t))
+      )
   )
 
 ;Verifica si la columna ya está completa o no
 (define (columna-incompleta numColumna)
-  (if(>(vector-ref tablero (+ 35 (-  numColumna 1))) 0) #f #t)
+  (if(>(vector-ref tablero (+ 35 numColumna)) 0) #f #t)
 )
 
 
