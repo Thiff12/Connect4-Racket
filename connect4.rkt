@@ -4,6 +4,7 @@
 ;Autores: Thifany González Vargas
 ;         Yerlyn Guerrero León
 
+
 #lang racket/gui
 (require math/array)
 
@@ -77,7 +78,6 @@
   (if(= jugador 1)  (and (mini-max) (set! jugador 2))  (set! jugador 1))
   )
 
-
 ;Mete la ficha en el espacio vacio y si la columna no esta completa 
 (define (casilla-vacia columna)
   (define numColumna (string->number columna))
@@ -99,15 +99,6 @@
   )
 
 
-(define(mini-max)
-  (define copiaTablero (vector-copy tablero 0 42))
-  (displayln copiaTablero)
-  ;(if estadoTerminal (eval copiaTablero) (- profundidad 1))
-  (jugadas-posibles copiaTablero)
-  (eval copiaTablero)
-
-)
-
 ;Dice si un estado es terminal o no 
 (define(estadoTerminal)
   (if (= profundidad 0) #t #f)
@@ -124,66 +115,98 @@
           (if(and(=(vector-ref tablero (+ (* 7 i) j)) 0) (equal? jugadas #f))
           (and (vector-set! posiblesJugadas j (+ (* 7 i) j)) (set! jugadas #t)) 0)
     ))
-    
   )
   (displayln posiblesJugadas)
   )
 
+;Hace el movimiento en la copia del tablero
+(define (hacerMovimiento mov copiaTablero ficha)
+  (vector-set! copiaTablero mov ficha))
+
+;Funcion de minimax
+(define(mini-max)
+  (define copiaTablero (vector-copy tablero 0 42))
+  (jugadas-posibles copiaTablero)
+  (eval copiaTablero)
+  #|(define mejor-mov 0)
+  (define max -999)
+  (define max-actual 0)
+  (for-each (lambda (mov)
+              (set! max-actual (valorMax (hacerMovimiento mov copiaTablero 1) -999 999))
+              (if (> max-actual max) (and (set! max max-actual) (set! mejor-mov mov)))
+              )
+            (jugadas-posibles copiaTablero))
+  mejor-mov
+)
+
+(define (valorMax copiaTablero alfa beta)
+  (if (equal? estadoTerminal #t) (eval copiaTablero)
+      (for-each (lambda (mov)
+              (set! alfa (max alfa (valorMin (hacerMovimiento mov copiaTablero 1)) alfa beta))
+              (if (>= alfa beta) beta ))
+            (jugadas-posibles copiaTablero))
+      alfa)
+  )
+
+(define (valorMin copiaTablero alfa beta)
+  (if (equal? estadoTerminal #t) (eval copiaTablero)
+      (for-each (lambda (mov)
+              (set! beta (min beta (valorMax (hacerMovimiento mov copiaTablero 2)) alfa beta))
+              (if (<= alfa beta) alfa))
+            (jugadas-posibles copiaTablero))
+      beta)|#
+  )
 
 ;Función eval
 (define (eval copiaTablero)
-  (cond[(equal? (cuatro-linea copiaTablero) #t) (displayln 5)]
-       ;[(bloqueo copiaTablero) (displayln 4)]
-       ;[(equal? (tres-linea copiaTablero) #t) (displayln 3)]
-       ;[(equal? (dos-linea copiaTablero) #t) (displayln 2)]
-       [else (and (display "else") (displayln 1))]
+  (cond[(equal? (cuatro-linea copiaTablero) #t) (displayln 100000)]
+       ;[(bloqueo copiaTablero) (displayln 10000)]
+       ;[(equal? (tres-linea copiaTablero) #t) (displayln 1000)]
+       ;[(equal? (dos-linea copiaTablero) #t) (displayln 100)]
+       [else (displayln 1)]
        ))
 
 ;Función cuatro en línea
 (define (cuatro-linea copiaTablero)
-  (define cont 3)
-  (define inicio 0)
-  (if (equal? (verificar4Columna copiaTablero cont inicio) #t) #t #f) 
+  (if (equal? (verificar4Columna copiaTablero) #t) #t #f) 
   ;Evalua diagonales
 )
 
 ;Verifica si en las columnas hay jugadas de 4
-(define (verificar4Columna copiaTablero cont inicio)
+(define (verificar4Columna copiaTablero)
   (define seguidos 1)
-  (for ([j 7]) ;Es el que se suma
-    (for ([i (in-range inicio (+ inicio 4))]); Es el que se multiplica
-      (define fichaActual (vector-ref tablero (+ (* 7 i) j)) )
-      (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j))) 
-      (if(and (= fichaActual fichaSiguiente) (> fichaActual 0))
-         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
-      (when (= seguidos 4) (display fichaActual))
-      )
-    (when (and (> cont 0) (= j 6)) (verificar4Columna copiaTablero (- 1 cont) (+ 1 inicio)))
-    )
+  (define cont 1)
+  (define indiceI 0)
+  (if (equal? (verificar4ColumnaAux seguidos cont indiceI 0 0) #t) #t #f)
+)
+
+;Función auxiliar recursiva de verificar 4 columna 
+(define (verificar4ColumnaAux seguidos cont indiceI i j)
+  (define fichaActual (vector-ref tablero (+ (* 7 i) j)) )
+  (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j)))
+  (cond [(= indiceI 3) #f]
+        [(= seguidos 4) #t]
+        [(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
+         (and (set! seguidos (+ seguidos 1)) (verificar4ColumnaAux seguidos (+ cont 1) indiceI (+ i 1) j))]
+        [(and (= j 6) (< cont 3)) (verificar4ColumnaAux seguidos (+ cont 1) indiceI (+ i 1) j)]
+        [(< cont 3) (verificar4ColumnaAux seguidos (+ cont 1) indiceI (+ i 1) j)]
+        [(and (= j 6)(= cont 3)) (verificar4ColumnaAux seguidos 1 (+ indiceI 1) (+ indiceI 1) 0)]
+        [(= cont 3) (verificar4ColumnaAux seguidos 1 indiceI indiceI (+ j 1))]
+        [(set! seguidos 1)(verificar4ColumnaAux seguidos (+ cont 1) indiceI (+ i 1) j)]
+        )
   )
-  
-
-
-
+      
 ;Verifica si la columna ya está completa o no
 (define (columna-incompleta numColumna)
   (if(>(vector-ref tablero (+ 35 numColumna)) 0) #f #t)
 )
 
-
 (define (ganador tablero)
-  (define i 0)
-  (define j 0)
-  (define seguidos 1)
-  ;Llamar las tres funciones aquí Columnas, Diagonal, Filas
-  ;(verificarColumna tablero)
+  (verificarColumna tablero)
   ;(verificarFila tablero)
-  (define num 0)
-   (set! num (verificarDiagonalDerecha tablero seguidos i j))
-  ;(display num)
+  ;(verificarDiagonalDerecha tablero seguidos i j)
   ;(verificarDiagonalIzquierda tablero)
 )
-
 
 (define (verificarColumna tablero)
   (define seguidos 1)
