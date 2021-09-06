@@ -7,9 +7,10 @@
 #lang racket/gui
 (require math/array)
 
-(define tablero (make-vector 42 0)); Tablero de jugadas
+(define tablero (make-vector 42 0)); Tablero 
 (define jugador 1);Jugador que empieza
 (define draw-context 0);Se requiere para dibujar
+(define profundidad 4)
 
 ;Despliega la ventana
 (define ventana (new frame%
@@ -83,7 +84,7 @@
       (for ([i 6])
         (if(and(=(vector-ref tablero (+ (* 7 i) (- numColumna 1))) 0) (equal? fichaPuesta #f))
            (and (poner-ficha i (- numColumna 1))  (set! fichaPuesta #t)) 0)
-        )(display "Casilla no disponible, prueba otra casilla")
+        )(displayln "Casilla no disponible, prueba otra casilla")
       )
   )
 
@@ -98,9 +99,114 @@
 
 ;Cambia de turno al jugador y si el jugador es la IA llama a la función min-max
 (define (cambiarTurno)
-  (if(= jugador 1) (and (set! jugador 2) #t) (set! jugador 1))
+  (if(= jugador 1)  (and (mini-max) (set! jugador 2))  (set! jugador 1))
   )
 
+(define(mini-max)
+  (define copiaTablero (vector-copy tablero 0 42))
+  (displayln copiaTablero)
+  (jugadas-posibles copiaTablero)
+
+)
+
+;Verifica las posibles jugadas
+(define(jugadas-posibles copiaTablero)
+  (define posiblesJugadas (make-vector 7 -1)); 
+  (define jugadas #f)
+  (for ([j 7])
+    (set! jugadas #f)
+    (if (equal? (columna-incompleta j) #t)
+      (for ([i 6])
+        (if(and(=(vector-ref tablero (+ (* 7 i) j)) 0) (equal? jugadas #f))
+           (and (vector-set! posiblesJugadas j (+ (* 7 i) j)) (set! jugadas #t)) 0)
+        )0)
+    )
+  (displayln posiblesJugadas)
+  )
+
+;Dice si un estado es terminal o no 
+(define(estadoTerminal)
+  (if (= profundidad 0) #t #f)
+  )
+
+;Función Eval
+(define (eval copiaTablero)
+  (cond[(cuatro-linea copiaTablero) 5]
+       [(bloqueo copiaTablero) 4]
+       [(tres-linea copiaTablero) 3]
+       [(dos-linea copiaTablero) 2]
+       [else 1]
+       ))
+
+;Función tres en línea
+(define (tres-linea copiaTablero)
+  (verificarColumnaJugador copiaTablero)
+  (verificarFilaJugador copiaTablero)
+  ;Evalua diagonales
+)
+
+;Verifica si en la columna hay posibles jugadas ganadoras del jugador
+(define (verificarColumnaJugador tablero)
+  (define seguidos 1)
+  (for ([j 7]) ;Es el que se suma
+    (for ([i 5]); Es el que se multiplica
+      (define fichaActual (vector-ref tablero (+ (* 7 i) j)))
+      (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j))) 
+      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
+         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
+      (when (= seguidos 3) #t))
+      )
+    )
+  )
+
+;Verifica si en la fila hay posibles jugadas ganadoras del jugador
+(define (verificarFilaJugador tablero)
+  (define seguidos 1)
+  (for ([i 6])
+    (for ([j 6])
+      (define fichaActual (vector-ref tablero (+ (* 7 i) j)) )
+      (define fichaSiguiente (vector-ref tablero (+ (* 7 i) (+ j 1))))
+      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
+         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
+      (when (= seguidos 3) #t))
+      )
+    )
+  )
+
+;Función cuatro en línea
+(define (cuatro-linea copiaTablero)
+  (verificar4Columna copiaTablero)
+  (verificar4Fila copiaTablero)
+  ;Evalua diagonales
+)
+
+;Verifica si en la columna hay jugadas de 4
+(define (verificar4Columna tablero)
+  (define seguidos 1)
+  (for ([j 7]) ;Es el que se suma
+    (for ([i 5]); Es el que se multiplica
+      (define fichaActual (vector-ref tablero (+ (* 7 i) j)))
+      (define fichaSiguiente (vector-ref tablero (+ (* 7 (+ i 1)) j))) 
+      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
+         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
+      (when (= seguidos 4) #t))
+      )
+    )
+  )
+
+;Verifica si en la fila hay jugadas de 4
+(define (verificar4Fila tablero)
+  (define seguidos 1)
+  (for ([i 6])
+    (for ([j 6])
+      (define fichaActual (vector-ref tablero (+ (* 7 i) j)) )
+      (define fichaSiguiente (vector-ref tablero (+ (* 7 i) (+ j 1))))
+      (if(and (= fichaActual fichaSiguiente) (= fichaActual jugador))
+         (set! seguidos (+ seguidos 1)) (set! seguidos 1))
+      (when (= seguidos 4) #t))
+      )
+    )
+  )
 
 ;Verifica si la columna ya está completa o no
 (define (columna-incompleta numColumna)
